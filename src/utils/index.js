@@ -1,49 +1,88 @@
-var ethers = require("ethers");
-import artifact from "./artifact.json";
+import { ethers } from "ethers";
+import moment from "moment";
+import { commify } from "ethers/lib/utils";
 
-const url =
-  "https://lingering-cosmopolitan-orb.ethereum-goerli.discover.quiknode.pro/56537c668da215497b3a273fc6870ac6298619a7/"; // Quick node
-const privateKey = "";
-const contractAddress = "0xb23133a15e198081F52133F9e001bD3149A3CdA4";
+export const formatWeiToDecimal = (numberString) => {
+  return ethers.utils.formatEther(numberString);
+};
 
-const provider = new ethers.providers.JsonRpcProvider(url);
-const wallet = new ethers.Wallet(privateKey, provider);
+export const getETHBalance = async (provider, address) => {
+  const balance = await provider.getBalance(address);
+  const formattedValue = formatWeiToDecimal(balance);
+  console.log(`ETH balance of address ${address}: ${formattedValue}`);
+  return formattedValue;
+};
 
-const contract = new ethers.Contract(contractAddress, artifact.abi, wallet);
-const user = "0xa234bF5AcC3B150907704ce26D855A5638dEF890";
+export const getaTokenBalance = async (contract, address) => {
+  const balance = await contract.getBalance(address);
+  const formattedValue = formatWeiToDecimal(balance);
+  console.log(`aToken balance of address ${address}: ${formattedValue}`);
+  return formattedValue;
+};
 
-async function main() {
-  const formatWeiToDecimal = (numberString) => {
-    return ethers.utils.formatEther(numberString);
-  };
+export const depositETH = async (contract, ethAmountInDecimal) => {
+  const ethAmountInWei = ethers.utils.parseEther(ethAmountInDecimal);
+  return await contract.stakeEth({ value: ethAmountInWei });
+};
 
-  const getETHBalance = async (provider, address) => {
-    const balance = await provider.getBalance(address);
-    const formattedValue = formatWeiToDecimal(balance);
-    console.log(`ETH balance of address ${address}: ${formattedValue}`);
-    return formattedValue;
-  };
+export const approveAllowance = async (tokenContract, address, amount) => {
+  const ethAmountInWei = ethers.utils.parseEther(amount);
+  return await tokenContract.approve(address, ethAmountInWei);
+};
 
-  const getaTokenBalance = async (contract, address) => {
-    const balance = await contract.getBalance(address);
-    const formattedValue = formatWeiToDecimal(balance);
-    console.log(`aToken balance of address ${address}: ${formattedValue}`);
-    return formattedValue;
-  };
+export const getAllowance = async (tokenContract, owner, spender) => {
+  const allowance = await tokenContract.allowance(owner, spender);
+  const formattedValue = formatWeiToDecimal(allowance);
+  console.log(`Allowance of address ${spender}: ${formattedValue}`);
+  return formattedValue;
+};
 
-  const depoistETH = async (contract, ethAmountInDecimal) => {
-    const ethAmountInWei = ethers.utils.parseEther(ethAmountInDecimal);
-    await contract.stakeEth({ value: ethAmountInWei });
-  };
+export const withdrawETH = async (contract, ethAmountInDecimal) => {
+  const ethAmountInWei = ethers.utils.parseEther(ethAmountInDecimal);
+  return await contract.withdrawEth(ethAmountInWei, { gasLimit: 1000000 });
+};
 
-  const approveAllowance = async (contract) => {
-    await contract.allowance();
-  };
+export const minifyAddress = (address, middleChars = 6, endChars = 4) => {
+  if (!address) return "";
+  if (address.substr(-4) == ".eth" && address.length < 20) return address;
+  return `${address.substring(0, middleChars + 2)}...${address.substring(
+    address.length - endChars
+  )}`;
+};
 
-  const withdrawETH = async (contract, ethAmountInDecimal) => {
-    const ethAmountInWei = ethers.utils.parseEther(ethAmountInDecimal);
-    await contract.withdrawEth(ethAmountInWei, { gasLimit: 1000 });
-  }; // await getETHBalance(provider, user); // await approveAllowance(contract); // await withdrawETH(contract, "0.05"); // await getETHBalance(provider, user);
-}
+export const parseEventsData = (events) => {
+  if (!events) return [];
+  const newEvents = [...events];
 
-main();
+  return newEvents
+    .sort((a, b) => +b.data.timestamp - +a.data.timestamp)
+    .map((event) => {
+      return {
+        amount: ethers.utils.formatEther(event.data.amount),
+        action: event.type,
+        timestamp: moment(event.block_timestamp).format(
+          "MMM DD, YYYY | h:mm:ss A"
+        ),
+        txHash: event.transaction_hash,
+      };
+    });
+};
+
+export const getCommifyAmount = (amount) => {
+  const value = amount.replace(/[^0-9.]/g, "");
+  const wholePart = String(value).split(".")[0] || "";
+  const commifiedWholePart = wholePart.length > 0 ? commify(wholePart) : "";
+  const decimalPart = String(value).split(".")[1]?.slice(0, 18) || "";
+  const dot = String(value).includes(".") ? "." : "";
+  const commifiedValue = `${commifiedWholePart}${dot}${decimalPart}`;
+  return commifiedValue;
+};
+
+export const getRectifiedAmount = (amount) => {
+  const value = amount.replace(/[^0-9.]/g, "");
+  const wholePart = String(value).split(".")[0] || "";
+  const dot = String(value).includes(".") ? "." : "";
+  const decimalPart = String(value).split(".")[1]?.slice(0, 18) || "";
+  const rectifiedValue = `${wholePart}${dot}${decimalPart}`;
+  return rectifiedValue;
+};

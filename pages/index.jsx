@@ -1,168 +1,70 @@
-import { useEvmNativeBalance } from "@moralisweb3/next";
-import { useEffect, useRef, useState } from "react";
-import detectEthereumProvider from "@metamask/detect-provider";
-import Card from "../src/components/Card";
-import Table from "../src/components/Table";
-import Button from "../src/components/Button";
-import Modal from "../src/components/Modal";
+import { useState } from "react";
+
+import Card from "src/components/Card";
+import Table from "src/components/Table";
+import Button from "src/components/Button";
+import Modal from "src/components/Modal";
+import WithdrawModal from "src/components/WithdrawModal";
+import TopBar from "src/components/TopBar";
+import SupplyModal from "src/components/SupplyModal";
+import { useBaseContext } from "src/context/BaseContext";
+import { getETHBalance, getaTokenBalance } from "src/utils/index";
+import useWindowSize from "src/hooks/useWindowSize";
 
 function HomePage() {
-  const [hasProvider, setHasProvider] = useState(false);
-  const initialState = { accounts: [] };
-  const [wallet, setWallet] = useState(initialState);
-  const address = wallet?.accounts?.[0];
-  let injectedProvider = useRef(false);
-  const isMetaMask = injectedProvider.current
-    ? window.ethereum.isMetaMask
-    : false;
-  const chainId = injectedProvider.current ? window?.ethereum?.chainId : null;
-  // console.log({ isMetaMask, hasProvider, wallet, chainId });
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("withdraw");
+  const { width } = useWindowSize();
 
-  useEffect(() => {
-    // window is accessible here.
-    if (typeof window.ethereum !== "undefined") {
-      injectedProvider.current = true;
-    }
-
-    const refreshAccounts = (accounts) => {
-      if (accounts.length > 0) {
-        updateWallet(accounts);
-      } else {
-        // if length 0, user is disconnected
-        setWallet(initialState);
-      }
-    };
-    function handleChainChanged(chainId) {
-      // We recommend reloading the page, unless you must do otherwise.
-      window.location.reload();
-    }
-
-    const getProvider = async () => {
-      const provider = await detectEthereumProvider({ silent: true });
-      setHasProvider(Boolean(provider)); // transform provider to true or false
-
-      if (provider) {
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts",
-        });
-        refreshAccounts(accounts);
-        window.ethereum.on("accountsChanged", refreshAccounts);
-        window.ethereum.on("chainChanged", handleChainChanged);
-      }
-    };
-
-    getProvider();
-    return () => {
-      window.ethereum?.removeListener("accountsChanged", refreshAccounts);
-    };
-  }, []);
-
-  const updateWallet = async (accounts) => {
-    setWallet({ accounts });
-  };
-
-  const handleConnect = async () => {
-    let accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    updateWallet(accounts);
-  };
-
-  const handleChainChange = async () => {
-    if (chainId && chainId !== "0x5") {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x5" }],
-      });
-    }
-    console.log({ chainId });
-  };
-
-  // get balance of native token on current chain
-  const { data: nativeBalance } = useEvmNativeBalance({
-    address,
-    chain: chainId,
-  });
+  const { balance, walletAddress, aTokenBalance, chainNotSupported } =
+    useBaseContext();
   return (
-    // div of height 100vh
-    <div className="h-screen bg-white">
-      {/* <h3>Wallet: {address}</h3>
-      <h3>Native Balance: {nativeBalance?.balance.ether} ETH</h3>
-      {isMetaMask && hasProvider && wallet.accounts.length < 1 ? (
-        <button onClick={handleConnect}>Connect MetaMask</button>
-      ) : (
-        !isMetaMask && "Add MetaMask"
-      )}
-      <button onClick={handleChainChange}>Change Chain</button> */}
-      {/* <Card
-        title="Your Deposits"
-        amount="50,000 ETH"
-        buttonText="Withdraw"
-        handleClick={() => {
-          console.log("withdraw");
-        }}
-      /> */}
-      {/* first div of height 40% and background color of primary 2 */}
-      <div className="h-35vh bg-primary-2"></div>
-      {/* second div of height 60% and background color of primary 1 */}
-      <div className="flex flex-col space-y-5 px-15vw">
-        <div className="flex justify-between space-x-5">
-          <Card
-            title="Your Deposits"
-            amount="50,000 ETH"
-            buttonText="Withdraw"
-            handleClick={() => {
-              console.log("withdraw");
-            }}
-          />
-          <Card
-            title="Wallet Balance"
-            amount="50,000 ETH"
-            buttonText="Deposit"
-            handleClick={() => {
-              console.log("deposit");
-            }}
-          />
-        </div>
-        <Table />
-        <Modal />
-        <div className="flex flex-col p-40 shadow-custom w-500">
-          <div>
-            <span className="text-600 text-24 text-primary-1">
-              Withdraw ETH
-            </span>
+    <>
+      <div className="relative">
+        <div className="h-[35vh] bg-primary-2 w-screen"></div>
+        <div className=" inset-0  absolute flex flex-col space-y-5   px-[10vw] top-[3vh]">
+          <TopBar />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Card
+              title="Your Deposits"
+              amount={`${
+                width < 600 ? (+aTokenBalance).toFixed(2) : aTokenBalance
+              } ETH`}
+              buttonText="Withdraw"
+              handleClick={() => {
+                setModalType("withdraw");
+                setShowModal(true);
+              }}
+              buttonDisabled={
+                !walletAddress || aTokenBalance == 0 || chainNotSupported
+              }
+            />
+            <Card
+              title="Wallet Balance"
+              amount={`${width < 600 ? (+balance).toFixed(2) : balance} ETH`}
+              buttonText="Deposit"
+              handleClick={() => {
+                setModalType("supply");
+                setShowModal(true);
+              }}
+              buttonDisabled={
+                !walletAddress || balance == 0 || chainNotSupported
+              }
+            />
           </div>
-          <div className="rounded-md border border-solid border-secondary-3 px-4 py-2 mt-40">
-            <div className="flex items-center justify-between">
-              <input
-                type="text"
-                className="text-400 text-20 text-secondary-2"
-                value="0.00"
-              />
-              <div>AB</div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span type="text" className="text-400 text-14 text-secondary-2">
-                $ 0.5
-              </span>
-              <div className="flex items-center">
-                <span type="text" className="text-500 text-14 text-secondary-1">
-                  {`Supply balance <0.00001`}{" "}
-                </span>
-                <span type="text" className="text-700 text-12 text-primary-1">
-                  MAX
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col space-y-5 mt-80">
-            <Button text={"Approve"} />
-            <Button text={"Withdraw"} />
-          </div>
+          <Table />
+          <div className="py-2" />
         </div>
       </div>
-    </div>
+
+      <Modal setShowModal={setShowModal} showModal={showModal}>
+        {modalType == "withdraw" ? (
+          <WithdrawModal />
+        ) : (
+          <SupplyModal setShowModal={setShowModal} />
+        )}
+      </Modal>
+    </>
   );
 }
 

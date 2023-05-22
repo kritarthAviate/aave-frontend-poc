@@ -14,21 +14,12 @@ module.exports = {
           2: "#2B2D3C",
         },
         secondary: {
-          1: "#2B2D3C",
+          1: "#62677B",
           2: "#A8AAB4",
           3: "#EAEBEF",
         },
         pink: "rgba(183, 80, 160)",
         teal: "rgba(61, 180, 195)",
-      },
-      spacing: {
-        15: "15px",
-        40: "40px",
-        80: "80px",
-        "35vh": "35vh",
-        "15vw": "15vw",
-        500: "500px",
-        400: "400px",
       },
       fontSize: {
         14: "14px",
@@ -52,24 +43,3 @@ module.exports = {
   plugins: [],
 };
 
-// font-normal	font-weight: 400;
-// font-medium	font-weight: 500;
-// font-semibold	font-weight: 600;
-// font-bold	font-weight: 700;
-
-// text-sm	font-size: 0.875rem; /* 14px */
-// line-height: 1.25rem; /* 20px */
-
-// text-lg	font-size: 1.125rem; /* 18px */
-// line-height: 1.75rem; /* 28px */
-
-// text-xl	font-size: 1.25rem; /* 20px */
-// line-height: 1.75rem; /* 28px */
-
-// text-2xl	font-size: 1.5rem; /* 24px */
-// line-height: 2rem; /* 32px */
-
-// text-3xl	font-size: 1.875rem; /* 30px */
-// line-height: 2.25rem; /* 36px */
-
-// <div class="bg-gradient-to-r from-pink-400 via-teal-400 to-transparent"></div>
